@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RK1 Material Handling Study Guide</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1a1a2e;color:#e0e0e0;font-family:'Segoe UI',Arial,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px}
+.container{max-width:700px;width:100%}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.header h1{font-size:1.3rem;color:#e94560}
+.stats{display:flex;gap:12px;font-size:.85rem;color:#aaa}
+.stats span{background:#16213e;padding:4px 10px;border-radius:6px}
+.progress-bar{width:100%;height:10px;background:#16213e;border-radius:5px;margin-bottom:16px;overflow:hidden}
+.progress-fill{height:100%;background:#e94560;border-radius:5px;transition:width .4s;width:0}
+.mode-toggle{display:flex;gap:8px;margin-bottom:10px}
+.mode-btn{background:#16213e;color:#888;border:1px solid #2a2a4a;border-radius:6px;padding:5px 14px;cursor:pointer;font-size:.8rem;transition:.2s}
+.mode-btn.active{background:#e94560;color:#fff;border-color:#e94560}
+.mode-btn:hover{background:#1e1e3a}
+.mode-btn.active:hover{background:#c0392b}
+.needs-work-toggle{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:.85rem;cursor:pointer;color:#aaa;user-select:none}
+.needs-work-toggle input{accent-color:#e94560}
+.bf-score{text-align:center;margin-bottom:14px;font-size:.9rem;display:none}
+.bf-score span.bf-label{background:#16213e;padding:5px 14px;border-radius:6px;color:#aaa}
+.bf-score .bf-correct{color:#2ecc71;font-weight:bold}
+.bf-score .bf-wrong{color:#e74c3c;font-weight:bold}
+.bf-score .bf-total{color:#fff}
+.btn-next{background:#e94560;color:#fff;flex:1;display:none}
+.btn-next:hover{background:#c0392b}
+.card{background:#16213e;border-radius:12px;padding:28px 24px;box-shadow:0 4px 20px rgba(0,0,0,.5);min-height:260px;display:flex;flex-direction:column}
+.card .q-label{font-size:.75rem;color:#e94560;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.diagram{text-align:center;margin-bottom:14px;background:#0f1628;border-radius:8px;padding:8px;min-height:30px}
+.diagram svg{max-width:100%;height:auto;display:block;margin:0 auto}
+.card .question{font-size:1.1rem;line-height:1.5;margin-bottom:20px;font-weight:500}
+.options{display:flex;flex-direction:column;gap:8px}
+.option{padding:12px 16px;background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;cursor:pointer;transition:.2s;font-size:.95rem}
+.option:hover{border-color:#e94560;background:#1e1e3a}
+.option.correct{border-color:#2ecc71;background:rgba(46,204,113,.15);color:#2ecc71}
+.option.wrong{border-color:#e74c3c;background:rgba(231,76,60,.15);color:#e74c3c}
+.option.reveal-correct{border-color:#2ecc71;background:rgba(46,204,113,.1);color:#2ecc71}
+.option.disabled{pointer-events:none;opacity:.7}
+.explanation{background:#0f3460;border-radius:8px;padding:14px 16px;margin-top:14px;font-size:.88rem;line-height:1.5;color:#b0c4de;display:none}
+.actions{display:flex;gap:10px;margin-top:14px;display:none}
+.actions button{padding:10px 24px;border:none;border-radius:8px;cursor:pointer;font-size:.9rem;font-weight:600;transition:.2s;flex:1}
+.btn-again{background:#e74c3c;color:#fff}
+.btn-again:hover{background:#c0392b}
+.btn-good{background:#2ecc71;color:#fff}
+.btn-good:hover{background:#27ae60}
+.reset{background:#0f3460;color:#aaa;border:1px solid #2a2a4a;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:.8rem;margin-top:8px;transition:.2s}
+.reset:hover{background:#16213e}
+.finished{text-align:center;padding:40px 0}
+.finished h2{color:#e94560;margin-bottom:12px}
+.finished p{color:#aaa;font-size:1rem}
+.study-tip{background:#0f3460;border-radius:8px;padding:12px 16px;margin-top:16px;font-size:.82rem;color:#7ec8e3;border-left:3px solid #e94560;display:none}
+@media(max-width:500px){.card{padding:20px 16px}.header h1{font-size:1.1rem}}
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <div class="header">
+    <h1>RK1 Welder Study Guide</h1>
+    <div class="stats">
+      <span id="statLearned">0 Learned</span>
+      <span id="statNeeds">0 Need Work</span>
+      <span id="statTotal">50 Total</span>
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="modeNormal">Flashcard</button>
+    <button class="mode-btn" id="modeBrute">Brute Force</button>
+  </div>
+  <div class="bf-score" id="bfScore">
+    <span class="bf-label">Score: <span class="bf-correct" id="bfCorrect">0</span> / <span class="bf-total" id="bfTotal">0</span> correct (<span id="bfPct">0%</span>)</span>
+  </div>
+  <label class="needs-work-toggle">
+    <input type="checkbox" id="needsWorkToggle">
+    Show only cards that need work
+  </label>
+  <div id="cardContainer" class="card">
+    <div class="q-label" id="qLabel">Question 1</div>
+    <div class="diagram" id="diagram"></div>
+    <div class="question" id="questionText">Loading...</div>
+    <div class="options" id="optionsContainer"></div>
+    <div class="explanation" id="explanation"></div>
+    <div class="actions" id="actions">
+      <button class="btn-next" id="btnNext">Next</button>
+      <button class="btn-again" id="btnAgain">Again</button>
+      <button class="btn-good" id="btnGood">Good</button>
+    </div>
+  </div>
+  <div class="study-tip" id="studyTip">"Again" cards return every ~4 cards. "Good" cards return every ~12 cards.</div>
+  <button class="reset" id="resetBtn">Reset Progress</button>
+</div>
+<script>
+(function(){
+const DATA = [
+{id:"rk1_1_1",q:"What is the minimum grade of manila rope suitable for overhead lifting?",opts:["Yacht rope","No. 1 grade","No. 2 grade","Hardware store rope"],ans:1,exp:"No. 1 grade is the lowest grade of manila rope suitable for overhead lifting."},
+{id:"rk1_1_2",q:"Which natural fibre rope is NOT acceptable for construction rigging and hoisting under WorkSafeBC regulations?",opts:["Manila rope","Nylon rope","Sisal rope","Polyester rope"],ans:2,exp:"Sisal rope is NOT acceptable for construction rigging and hoisting."},
+{id:"rk1_1_3",q:"Nylon rope can stretch up to what percentage of its original length?",opts:["10%","20%","30%","40%"],ans:3,exp:"Nylon rope will stretch up to 40% of its original length."},
+{id:"rk1_1_4",q:"Which synthetic rope has the best insulating properties against electrical shock?",opts:["Nylon","Polyester","Polypropylene","Manila"],ans:2,exp:"Polypropylene rope has the best insulating properties against electrical shock."},
+{id:"rk1_1_5",q:"What is whipping used for on a fibre rope?",opts:["To increase strength","To prevent strands from unraveling","To make the rope waterproof","To lubricate the fibres"],ans:1,exp:"Whipping is a wrapping applied at the end of a rope to prevent the rope strands from unraveling."},
+{id:"rk1_1_6",q:"How much can a knot reduce the breaking strength of fibre rope?",opts:["Up to 10%","Up to 25%","Up to 50%","Up to 75%"],ans:2,exp:"Knots can reduce the rope's strength by up to 50%."},
+{id:"rk1_1_7",q:"What is used to protect the eye of a rope when attaching a hook or ring?",opts:["A thimble","A shackle","A clip","A ferrule"],ans:0,exp:"Use a thimble to protect the eye of the rope."},
+{id:"rk1_1_8",q:"The bowline knot forms what kind of loop?",opts:["A slip loop","A non-slip loop","An adjustable loop","A fixed-size loop"],ans:1,exp:"The bowline knot forms a non-slip loop at the end of a rope."},
+{id:"rk1_1_9",q:"Which knot is used to fasten two ropes of equal diameter together?",opts:["Sheet bend","Bowline","Reef knot (square knot)","Clove hitch"],ans:2,exp:"Use the reef knot or square knot to fasten together two ropes of equal diameter."},
+{id:"rk1_1_10",q:"Which knot is used to attach two ropes of unequal diameter to each other?",opts:["Reef knot","Sheet bend","Bowline","Clove hitch"],ans:1,exp:"Use the sheet bend to attach two ropes of unequal diameter."},
+{id:"rk1_1_11",q:"Which hitch is used to secure a rope to a fixed object such as a post?",opts:["Timber hitch","Running half hitch","Clove hitch","Bowline"],ans:2,exp:"Use the clove hitch to secure a rope to a fixed object such as a post."},
+{id:"rk1_1_12",q:"Which hitch is used to secure a rope to a plank or pipe for lifting in a vertical position?",opts:["Clove hitch","Timber hitch","Round turn with two half hitches","Running half hitch"],ans:1,exp:"Use the timber hitch to lift objects in a vertical position."},
+{id:"rk1_1_13",q:"The single Dutchman (trucker's knot) can generate how much tension compared to pulling on a straight rope?",opts:["Twice","Three times","Four times","Five times"],ans:1,exp:"Almost three times as much tension using the single Dutchman."},
+{id:"rk1_1_14",q:"In wire rope identification, the number of strands and number of wires per strand is called the:",opts:["Grade","Pattern","Composition","Formation"],ans:2,exp:"Composition is the number of strands and wires per strand (e.g. 6 x 19)."},
+{id:"rk1_1_15",q:"Which wire rope pattern alternates thick and thin wires for greater flexibility and abrasion resistance?",opts:["Ordinary","Seale","Warrington","Filler"],ans:2,exp:"Warrington pattern alternates thick and thin wires."},
+{id:"rk1_1_16",q:"Which wire rope pattern has thicker wires on the outside for greater abrasion resistance?",opts:["Ordinary","Seale","Warrington","Filler"],ans:1,exp:"Seale pattern has thicker wires on the outside."},
+{id:"rk1_1_17",q:"What is the difference between regular lay and lang lay wire rope?",opts:["Number of wires per strand","Direction wires and strands are wound","Type of core material","Grade of steel used"],ans:1,exp:"Regular lay: wires and strands wound opposite. Lang lay: same direction."},
+{id:"rk1_1_18",q:"Never use lang lay wire rope as a:",opts:["Hoist line","Sling","Tag line","Boom line"],ans:1,exp:"Never use lang lay wire rope as a sling."},
+{id:"rk1_1_19",q:"A wire rope used for lifting must be replaced if how many randomly distributed broken wires appear in one rope lay?",opts:["Three or more","Four or more","Six or more","Ten or more"],ans:2,exp:"Replace if 6+ randomly distributed broken wires in one rope lay."},
+{id:"rk1_1_20",q:"What is the minimum grade of chain acceptable for overhead hoisting?",opts:["Grade 4","Grade 6","System 8 grade A","Grade 10"],ans:2,exp:"System 8 grade A. Each link must bear an '8' stamped into its surface."},
+{id:"rk1_1_21",q:"A chain sling must not be exposed to a temperature above what level?",opts:["150 C","200 C","260 C","315 C"],ans:2,exp:"260 C (500 F) unless otherwise permitted by the manufacturer."},
+{id:"rk1_1_22",q:"What is the WLL of a single vertical hitch used in straight pulling?",opts:["75%","100%","150%","200%"],ans:1,exp:"100% of its rated WLL."},
+{id:"rk1_1_23",q:"A hook must be removed from service if the throat opening has increased by more than:",opts:["5%","10%","15%","20%"],ans:2,exp:"More than 15% of the original opening.",svg:'<svg viewBox="0 0 220 130" xmlns="http://www.w3.org/2000/svg"><text x="60" y="20" text-anchor="middle" fill="#2ecc71" font-size="9">Good hook ✓</text><path d="M40,30 L40,70 Q40,100 75,100 Q100,100 100,120" stroke="#2ecc71" stroke-width="3" fill="none" stroke-linecap="round"/><line x1="40" y1="30" x2="75" y2="100" stroke="#2ecc71" stroke-width="1" stroke-dasharray="3"/><text x="50" y="70" fill="#2ecc71" font-size="8">normal</text><text x="160" y="20" text-anchor="middle" fill="#e74c3c" font-size="9">Worn hook ✗</text><path d="M140,30 L140,70 Q140,105 175,105 Q200,105 200,125" stroke="#e74c3c" stroke-width="3" fill="none" stroke-linecap="round"/><line x1="140" y1="30" x2="190" y2="110" stroke="#e74c3c" stroke-width="1" stroke-dasharray="3"/><text x="155" y="75" fill="#e74c3c" font-size="8">spread &gt;15%</text></svg>'},
+{id:"rk1_1_24",q:"Which type of eye bolt can be used for overhead hoisting?",opts:["Shoulderless","Shoulder-type","Both","Neither"],ans:1,exp:"Shoulder-type eye bolts. Shoulderless must never be used for overhead hoisting."},
+{id:"rk1_1_25",q:"When installing U-bolt wire rope clips, the saddle must be placed on which part?",opts:["The dead end","The live (standing) end","Either end","Neither"],ans:1,exp:"Never saddle a dead horse - saddle goes on the live/standing part.",svg:'<svg viewBox="0 0 280 95" xmlns="http://www.w3.org/2000/svg"><rect x="85" y="32" width="120" height="28" rx="4" fill="#1a3a5c" stroke="#e94560" stroke-width="1.5"/><text x="145" y="49" text-anchor="middle" fill="#fff" font-size="9" font-weight="bold">Saddle here (live end) ✓</text><rect x="85" y="62" width="120" height="28" rx="4" fill="#1a3a5c" stroke="#e74c3c" stroke-width="1.5"/><text x="145" y="79" text-anchor="middle" fill="#e74c3c" font-size="9" font-weight="bold">Never saddle dead end ✗</text><line x1="15" y1="46" x2="80" y2="46" stroke="#6a8caf" stroke-width="3" stroke-linecap="round"/><line x1="205" y1="46" x2="265" y2="46" stroke="#6a8caf" stroke-width="3" stroke-linecap="round"/><text x="270" y="43" fill="#aaa" font-size="8">live end</text><text x="10" y="43" fill="#e74c3c" font-size="8">dead end</text><line x1="80" y1="46" x2="80" y2="32" stroke="#aaa" stroke-width="1" stroke-dasharray="3"/><line x1="205" y1="46" x2="205" y2="32" stroke="#aaa" stroke-width="1" stroke-dasharray="3"/></svg>'},
+{id:"rk1_1_26",q:"Correctly installed wire rope clips reduce the breaking strength by:",opts:["10%","20%","30%","50%"],ans:1,exp:"20%. Incorrect installation can reduce it by up to 50%."},
+{id:"rk1_1_27",q:"Which type of shackle pin is most commonly used?",opts:["Round pin","Bolt type pin","Screw pin","Locking pin"],ans:2,exp:"The screw-type shackle is most commonly used."},
+{id:"rk1_1_28",q:"If a load sits halfway between the saddle and the tip of a hook, it can carry approx what % of rated load?",opts:["40%","60%","70%","80%"],ans:2,exp:"Half off-centre = about 80%. Point load at tip = about 40%."},
+{id:"rk1_1_29",q:"All hoisting hooks must have safety catches. Which are exceptions?",opts:["Slip and grab hooks","Grab and sorting hooks","Slip and sorting hooks","None"],ans:1,exp:"Exceptions are grab and sorting hooks."},
+{id:"rk1_1_30",q:"What is the purpose of a spreader bar?",opts:["Increase lifting capacity","Prevent load from tipping or sliding","Attach ropes to the hook","Reduce sling angle"],ans:1,exp:"Spreader bars prevent the load from tipping or sliding out of rigging."},
+{id:"rk1_1_31",q:"Plate clamps are used for:",opts:["Lifting pipes","Gripping plate for vertical hoisting","Holding chains","Attaching ropes to hooks"],ans:1,exp:"Serrated jaws grip pieces of plate for vertical hoisting."},
+{id:"rk1_3_1",q:"When lifting a load, you should bend at the:",opts:["Waist","Lower back","Knees","Hips"],ans:2,exp:"Bend at the knees, not your back."},
+{id:"rk1_3_2",q:"If you must apply a sideways force to a suspended load, you should:",opts:["Pull toward you","Push away from you","Use a tag line on your waist","Use a lever"],ans:1,exp:"Always push the load away from you, never pull."},
+{id:"rk1_3_3",q:"A suspended object will always move so its centre of gravity is located:",opts:["At the top","At the bottom","Directly below its point of support","Above the hook"],ans:2,exp:"The centre of gravity sits directly below its point of support."},
+{id:"rk1_3_4",q:"If a load tilts more than how many degrees during the initial lift, lower and rearrange?",opts:["3","5","10","15"],ans:1,exp:"If the load tilts more than 5 degrees, lower and rearrange the rigging."},
+{id:"rk1_3_5",q:"A choker hitch will safely hoist what percentage of its rated WLL?",opts:["50%","75%","100%","200%"],ans:1,exp:"The choker hitch will safely hoist 75% of its rated WLL.",svg:'<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="15" r="5" fill="#fff" stroke="#e94560" stroke-width="1.5"/><line x1="100" y1="20" x2="100" y2="35" stroke="#aaa" stroke-width="1" stroke-dasharray="3"/><text x="105" y="33" fill="#aaa" font-size="8">Hook</text><path d="M100,35 Q100,55 80,60 Q60,65 60,80 L60,90" stroke="#e94560" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M60,90 L85,55" stroke="#e94560" stroke-width="2.5" fill="none" stroke-linecap="round"/><rect x="30" y="85" width="50" height="18" rx="3" fill="#2a4a7a"/><text x="55" y="97" text-anchor="middle" fill="#fff" font-size="8">Load</text><text x="110" y="60" fill="#2ecc71" font-size="11" font-weight="bold">75%</text></svg>'},
+{id:"rk1_3_6",q:"A basket hitch with vertical legs will safely hoist what percentage of its rated WLL?",opts:["75%","100%","150%","200%"],ans:3,exp:"200% of its rated WLL when legs are vertical.",svg:'<svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="15" r="5" fill="#fff" stroke="#e94560" stroke-width="1.5"/><line x1="100" y1="20" x2="100" y2="35" stroke="#aaa" stroke-width="1" stroke-dasharray="3"/><text x="105" y="33" fill="#aaa" font-size="8">Hook</text><line x1="100" y1="35" x2="60" y2="80" stroke="#e94560" stroke-width="2.5" stroke-linecap="round"/><line x1="100" y1="35" x2="140" y2="80" stroke="#e94560" stroke-width="2.5" stroke-linecap="round"/><rect x="30" y="80" width="140" height="22" rx="3" fill="#2a4a7a"/><text x="100" y="95" text-anchor="middle" fill="#fff" font-size="10">Load</text><text x="110" y="55" fill="#2ecc71" font-size="11" font-weight="bold">200%</text></svg>'},
+{id:"rk1_3_7",q:"Double choker hitches must be used on horizontal loads with two or more pieces over what length?",opts:["1.5 m","3 m","4.5 m","6 m"],ans:1,exp:"Over 3 m (10 ft.) in length."},
+{id:"rk1_3_8",q:"When rigging a choker with a shackle, the pin must bear on the:",opts:["Running line","Eye of the sling","Hook of the crane","Centre of the load"],ans:1,exp:"The pin must bear on the eye of the sling, not the running line."},
+{id:"rk1_3_9",q:"What should be placed between a sling and sharp corners of a load?",opts:["Lubricant","Padding (softeners)","Extra slings","Metal plates"],ans:1,exp:"Always place padding/softeners between sling and sharp corners."},
+{id:"rk1_3_10",q:"When rigging long loads, sling angles should always be greater than:",opts:["30 from horizontal","45 from horizontal","60 from horizontal","75 from horizontal"],ans:2,exp:"Greater than 60 degrees from horizontal.",svg:'<svg viewBox="0 0 220 130" xmlns="http://www.w3.org/2000/svg"><polygon points="110,15 25,100 195,100" fill="none" stroke="#e94560" stroke-width="2"/><rect x="15" y="100" width="190" height="22" rx="3" fill="#2a4a7a"/><text x="110" y="115" text-anchor="middle" fill="#fff" font-size="10">Load</text><circle cx="110" cy="15" r="5" fill="#fff" stroke="#e94560" stroke-width="1.5"/><line x1="110" y1="20" x2="110" y2="35" stroke="#aaa" stroke-width="1" stroke-dasharray="3"/><text x="115" y="32" fill="#aaa" font-size="8">Hook</text><text x="125" y="65" fill="#2ecc71" font-size="12" font-weight="bold">&gt;60&deg;</text><line x1="25" y1="100" x2="25" y2="122" stroke="#aaa" stroke-width="1" stroke-dasharray="3"/><text x="25" y="130" text-anchor="middle" fill="#aaa" font-size="8">S</text><line x1="195" y1="100" x2="195" y2="122" stroke="#aaa" stroke-width="1" stroke-dasharray="3"/><text x="195" y="130" text-anchor="middle" fill="#aaa" font-size="8">S</text><text x="60" y="55" fill="#aaa" font-size="9">L (sling)</text><text x="130" y="55" fill="#aaa" font-size="9">L (sling)</text></svg>'},
+{id:"rk1_3_11",q:"To roll a load onto its side using a crane, rig the load:",opts:["At centre","Off centre","At both ends","At the top"],ans:1,exp:"Rig off centre so it automatically starts to roll when hoisted."},
+{id:"rk1_3_12",q:"A turning bar releases the steel once it is turned:",opts:["Past the point of balance","90 degrees","180 degrees","Completely over"],ans:0,exp:"Releases once turned past the point of balance."},
+{id:"rk1_3_13",q:"What is placed under the first row when stacking structural shapes?",opts:["Alternating material","Cross-sticks","Blocking","Interlocking spacers"],ans:2,exp:"Place blocking under the first row and cross-sticks between each new row."},
+{id:"rk1_3_14",q:"Metal sections such as I-beams should be stacked in:",opts:["Leaning piles","Upright position","Interlocking and alternating order","Rotated fashion"],ans:2,exp:"Interlocking and alternating order. Interlocking without alternating creates leaning stacks.",svg:'<svg viewBox="0 0 260 120" xmlns="http://www.w3.org/2000/svg"><text x="70" y="15" text-anchor="middle" fill="#2ecc71" font-size="10">Correct ✓</text><rect x="15" y="40" width="30" height="10" fill="#4a7a9a"/><rect x="40" y="50" width="30" height="10" fill="#4a7a9a"/><rect x="15" y="60" width="30" height="10" fill="#4a7a9a"/><rect x="40" y="70" width="30" height="10" fill="#4a7a9a"/><rect x="15" y="80" width="30" height="10" fill="#4a7a9a"/><rect x="40" y="90" width="30" height="10" fill="#4a7a9a"/><text x="145" y="15" text-anchor="middle" fill="#e74c3c" font-size="10">Incorrect ✗</text><rect x="100" y="20" width="20" height="16" fill="#4a7a9a" transform="rotate(15,110,28)"/><rect x="130" y="30" width="20" height="16" fill="#4a7a9a" transform="rotate(15,140,38)"/><rect x="160" y="40" width="20" height="16" fill="#4a7a9a" transform="rotate(15,170,48)"/><rect x="125" y="55" width="20" height="16" fill="#4a7a9a" transform="rotate(15,135,63)"/><rect x="155" y="65" width="20" height="16" fill="#4a7a9a" transform="rotate(15,165,73)"/><line x1="90" y1="105" x2="200" y2="105" stroke="#e74c3c" stroke-width="1" stroke-dasharray="3"/><text x="145" y="115" text-anchor="middle" fill="#e74c3c" font-size="8">Leaning - could topple</text></svg>'},
+{id:"rk1_3_15",q:"When stacking round materials, the bottom row must be blocked to prevent:",opts:["Rolling","Rusting","Spreading apart","Bending"],ans:2,exp:"Blocking prevents the bottom row from being spread apart."},
+{id:"rk1_4_1",q:"A block and tackle uses which type of rope?",opts:["Wire rope","Fibre rope","Chain","Cable"],ans:1,exp:"Fibre ropes rather than wire rope."},
+{id:"rk1_4_2",q:"A block and tackle has no:",opts:["Pulleys","Braking device or safety system","Lifting capacity","Rope"],ans:1,exp:"No braking device or safety system. Cannot support a load unless anchored."},
+{id:"rk1_4_3",q:"Chain hoists can move loads:",opts:["Up/down or sideways, never both","Only up and down","In any direction","Only horizontally"],ans:0,exp:"Up and down or sideways, but never both at the same time."},
+{id:"rk1_4_4",q:"Come-alongs are activated by:",opts:["Endless chain","Ratchet lever","Push button","Hand crank"],ans:1,exp:"Activated by a ratchet lever."},
+{id:"rk1_4_5",q:"What type of rope does a Griphoist use?",opts:["Fibre rope","Nylon rope","Wire rope","Chain"],ans:2,exp:"Works by direct pull on a wire rope."},
+{id:"rk1_4_6",q:"Griphoists have built-in overload protection consisting of:",opts:["Safety valve","Shear pin","Automatic shutoff","Warning light"],ans:1,exp:"A shear pin that breaks when overloaded, preventing further movement."},
+{id:"rk1_4_7",q:"Which type of overhead travelling crane has greater load-carrying capacity?",opts:["Under-slung","Over-slung","Jib crane","Gantry crane"],ans:1,exp:"The over-slung type generally has greater load-carrying capacity."},
+{id:"rk1_4_8",q:"The main identifying feature of a jib crane is:",opts:["Rotating boom","Overhead runways","Vertical mast with forks","Bridge beam"],ans:0,exp:"A rotating boom attached to a vertical member."},
+{id:"rk1_4_9",q:"Forklift load-lifting capacity depends on:",opts:["Engine size","Spacing of forks, mast height/tilt, floor surface","Weight of forklift","Size of rear wheels"],ans:1,exp:"Capacity depends on fork spacing, mast height/tilt, and floor surface."},
+{id:"rk1_4_10",q:"A jack is usually identified by its:",opts:["Weight","Length","Load capacity","Height"],ans:2,exp:"Identified by its load capacity in kilograms (tons)."},
+{id:"rk1_4_11",q:"As a scissor jack is extended, the mechanical advantage:",opts:["Decreases","Stays the same","Increases","Doubles then decreases"],ans:2,exp:"Mechanical advantage increases as the scissor jack is extended."},
+{id:"rk1_4_12",q:"The mechanical advantage of a hydraulic jack depends on:",opts:["Length of handle","Ratio of pump piston to lifting piston diameter","Height of jack","Weight of load"],ans:1,exp:"Ratio of the pump piston diameter to the lifting piston diameter."},
+{id:"rk1_4_13",q:"In the event of failure, which type of jack drops the load violently?",opts:["Hydraulic","Mechanical","Griphoist","Chain hoist"],ans:1,exp:"Mechanical jacks drop the load violently. Hydraulic lowers gently."},
+{id:"rk1_4_14",q:"The sound or light signal for STOP is:",opts:["One bell/flash","Two bells/flashes","Three bells/flashes","Four bells/flashes"],ans:0,exp:"STOP = 1. RAISE = 2. LOWER = 3. ALL CLEAR = 4.",svg:'<svg viewBox="0 0 240 80" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="8" width="220" height="22" rx="4" fill="#1a3a5c" stroke="#e94560" stroke-width="1"/><text x="30" y="23" fill="#e94560" font-size="10" font-weight="bold">STOP</text><text x="90" y="23" fill="#fff" font-size="10" font-weight="bold">1 bell / flash</text><rect x="10" y="30" width="220" height="22" rx="4" fill="#1a3a5c" stroke="#e94560" stroke-width="1"/><text x="30" y="45" fill="#e94560" font-size="10" font-weight="bold">RAISE</text><text x="90" y="45" fill="#fff" font-size="10" font-weight="bold">2 bells / flashes</text><rect x="10" y="52" width="220" height="22" rx="4" fill="#1a3a5c" stroke="#e94560" stroke-width="1"/><text x="30" y="67" fill="#e94560" font-size="10" font-weight="bold">LOWER</text><text x="90" y="67" fill="#fff" font-size="10" font-weight="bold">3 bells / flashes</text></svg>'},
+{id:"rk1_4_15",q:"The hand signal for UP or HOIST is:",opts:["Arm down, finger down, circling","Arm vertical, finger up, small circles","Both arms extended","Fist to head"],ans:1,exp:"Forearm vertical, forefinger pointing up, moving in small horizontal circles.",svg:'<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg"><circle cx="70" cy="20" r="12" fill="#d4a574"/><line x1="70" y1="32" x2="70" y2="75" stroke="#d4a574" stroke-width="5" stroke-linecap="round"/><line x1="70" y1="45" x2="45" y2="60" stroke="#d4a574" stroke-width="4" stroke-linecap="round"/><line x1="70" y1="45" x2="95" y2="60" stroke="#d4a574" stroke-width="4" stroke-linecap="round"/><line x1="70" y1="75" x2="55" y2="110" stroke="#d4a574" stroke-width="5" stroke-linecap="round"/><line x1="70" y1="75" x2="85" y2="110" stroke="#d4a574" stroke-width="5" stroke-linecap="round"/><line x1="70" y1="5" x2="70" y2="12" stroke="#e94560" stroke-width="2"/><circle cx="70" cy="2" r="4" fill="#e94560"/><path d="M55,15 Q70,35 85,15" fill="none" stroke="#2ecc71" stroke-width="1.5" stroke-dasharray="3"/><text x="70" y="130" text-anchor="middle" fill="#aaa" font-size="9">Forearm up, finger up, circle hand</text></svg>'},
+{id:"rk1_4_16",q:"To signal use main line, you:",opts:["Tap elbow","Point to shoulder","Tap fist to head","Hold up one finger"],ans:2,exp:"Tap fist to head for main line. Tap elbow for whip line."},
+{id:"rk1_4_17",q:"When transporting loads with a motorized forklift, keep the load:",opts:["Above line of sight","As low as practical","Tilted forward","As far forward as possible"],ans:1,exp:"Transport loads in as low a position as is practical."},
+{id:"rk1_4_18",q:"All turns on a motorized forklift must be made:",opts:["In reverse","At high speed","On level surfaces","On sloping surfaces"],ans:2,exp:"On level surfaces. Never turn on a sloping surface."},
+{id:"rk1_4_19",q:"When lowering a load with a hydraulic jack, you should:",opts:["Open valve quickly","Open valve slowly","Pump downward","Release pressure suddenly"],ans:1,exp:"Open the valve slowly to avoid lowering too quickly."},
+{id:"rk1_4_20",q:"Bridging is made of:",opts:["Metal beams","High-quality wood of equal sizes","Concrete blocks","Steel plates"],ans:1,exp:"Bridging is made of high-quality wood of equal sizes stacked carefully."}
+];
+function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+let LS=JSON.parse(localStorage.getItem('rk1_study_progress')||'{}');
+const els={};
+['qLabel','questionText','optionsContainer','explanation','actions','btnAgain','btnGood','btnNext','progressFill','statLearned','statNeeds','statTotal','needsWorkToggle','studyTip','resetBtn','cardContainer','diagram','modeNormal','modeBrute','bfScore','bfCorrect','bfTotal','bfPct'].forEach(k=>{els[k]=document.getElementById(k)});
+let state={current:null,mode:'flashcard',bfAnswered:0,bfCorrect:0,bfQueue:[],bfIndex:0,total:0},total=DATA.length;
+function getCards(){let pool=DATA.slice();pool.forEach(c=>{c.status=LS[c.id]||0});if(state.mode==='flashcard'&&els.needsWorkToggle.checked)pool=pool.filter(c=>c.status===1);shuffle(pool);return pool}
+function calcSchedule(){let cards=getCards();if(!cards.length){showFinished();return}if(state.mode==='brute'){state.bfQueue=cards;state.bfIndex=0;state.bfAnswered=0;state.bfCorrect=0;state.queue=cards;state.index=0;updateBFScore();return}let again=cards.filter(c=>c.status===1);let good=cards.filter(c=>c.status===2);let rest=cards.filter(c=>c.status!==1&&c.status!==2);let ordered=[];let pos=0;while(again.length||good.length||rest.length){if(pos>0&&pos%12===0&&good.length){ordered.push(good.shift())}else if(pos>0&&pos%4===0&&again.length){ordered.push(again.shift())}else if(rest.length){ordered.push(rest.shift())}else if(again.length){ordered.push(again.shift())}else if(good.length){ordered.push(good.shift())}else break;pos++}state.queue=ordered;state.index=0}
+function showQuestion(){if(!state.queue||state.index>=state.queue.length){calcSchedule();if(!state.queue||!state.queue.length){showFinished();return}}let card=state.queue[state.index];state.current=card;els.qLabel.textContent='Question '+(state.index+1)+' of '+state.queue.length;els.questionText.textContent=card.q;els.diagram.innerHTML=card.svg||'';els.optionsContainer.innerHTML='';els.explanation.style.display='none';els.explanation.textContent='';els.actions.style.display='none';els.btnNext.style.display='none';els.btnAgain.style.display='none';els.btnGood.style.display='none';els.studyTip.style.display='block';card.opts.forEach((o,i)=>{let div=document.createElement('div');div.className='option';div.textContent=String.fromCharCode(97+i)+') '+o;div.dataset.idx=i;div.addEventListener('click',function(){selectOption(i,card)});els.optionsContainer.appendChild(div)});els.cardContainer.className='card'}
+function selectOption(idx,card){let opts=els.optionsContainer.querySelectorAll('.option');opts.forEach(function(o){o.classList.add('disabled')});let correct=idx===card.ans;opts.forEach(function(o,i){if(i===card.ans)o.classList.add('reveal-correct');if(i===idx&&!correct)o.classList.add('wrong');if(i===idx&&correct)o.classList.add('correct')});els.explanation.textContent=card.exp;els.explanation.style.display='block';els.studyTip.style.display='none';els.actions.style.display='flex';if(state.mode==='brute'){els.btnNext.style.display='block';if(correct)state.bfCorrect++;state.bfAnswered++;updateBFScore();els.btnNext.onclick=function(){state.index++;showQuestion()}}else{els.btnAgain.style.display='block';els.btnGood.style.display='block';els.btnAgain.onclick=function(){record(1,card)};els.btnGood.onclick=function(){record(2,card)}}}
+function record(status,card){LS[card.id]=status;localStorage.setItem('rk1_study_progress',JSON.stringify(LS));state.current.status=status;state.index++;updateStats();showQuestion()}
+function updateBFScore(){els.bfCorrect.textContent=state.bfCorrect;els.bfTotal.textContent=state.bfAnswered;let pct=state.bfAnswered?Math.round(state.bfCorrect/state.bfAnswered*100):0;els.bfPct.textContent=pct+'%'}
+function updateStats(){let learned=DATA.filter(function(c){return(LS[c.id]||0)===2}).length;let needs=DATA.filter(function(c){return(LS[c.id]||0)===1}).length;els.statLearned.textContent=learned+' Learned';els.statNeeds.textContent=needs+' Need Work';els.statTotal.textContent=total+' Total';els.progressFill.style.width=(learned/total*100)+'%'}
+function showFinished(){if(state.mode==='brute'){let wrong=state.bfAnswered-state.bfCorrect;els.cardContainer.innerHTML='<div class="finished"><h2>BF Complete!</h2><p>You got <span style="color:#2ecc71;font-weight:bold">'+state.bfCorrect+'</span> / <span style="color:#fff;font-weight:bold">'+state.bfAnswered+'</span> correct ('+Math.round(state.bfAnswered?state.bfCorrect/state.bfAnswered*100:0)+'%).</p><p style="margin-top:8px;color:#aaa">'+wrong+' wrong. Switch to Flashcard mode or press Reset to start over.</p></div>';return}let learned=DATA.filter(function(c){return(LS[c.id]||0)===2}).length;els.cardContainer.innerHTML='<div class="finished"><h2>All Done!</h2><p>You have reviewed all cards. '+learned+' learned, '+(total-learned)+' need work.</p><p style="margin-top:8px;color:#7ec8e3">Toggle "Show only cards that need work" to focus on remaining cards, or reset progress to start over.</p></div>'}
+function setMode(mode){state.mode=mode;els.modeNormal.className='mode-btn'+(mode==='flashcard'?' active':'');els.modeBrute.className='mode-btn'+(mode==='brute'?' active':'');els.bfScore.style.display=mode==='brute'?'block':'none';els.needsWorkToggle.style.display=mode==='flashcard'?'flex':'none';state.queue=null;state.index=0;calcSchedule();showQuestion()}
+els.modeNormal.addEventListener('click',function(){setMode('flashcard')});
+els.modeBrute.addEventListener('click',function(){setMode('brute')});
+els.needsWorkToggle.addEventListener('change',function(){if(state.mode==='flashcard'){state.queue=null;state.index=0;calcSchedule();showQuestion()}});
+els.resetBtn.addEventListener('click',function(){if(confirm('Reset all progress?')){localStorage.removeItem('rk1_study_progress');LS={};state.queue=null;state.index=0;if(state.mode==='brute'){state.bfAnswered=0;state.bfCorrect=0;updateBFScore()}calcSchedule();showQuestion();updateStats()}});
+function init(){setMode('flashcard');calcSchedule();showQuestion();updateStats()}
+init();
+})();
+</script>
+</body>
+</html>
